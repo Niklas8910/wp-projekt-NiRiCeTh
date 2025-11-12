@@ -1,0 +1,55 @@
+version: '2.4'
+environment:
+- MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+- MYSQL_DATABASE=${MYSQL_DATABASE}
+- MYSQL_USER=${MYSQL_USER}
+- MYSQL_PASSWORD=${MYSQL_PASSWORD}
+volumes:
+- db_data:/var/lib/mysql
+healthcheck:
+test: ["CMD", "bash", "-c", "mysqladmin ping -h 127.0.0.1 -u${MYSQL_USER} -p${MYSQL_PASSWORD} >/dev/null 2>&1 || mysqladmin ping -h 127.0.0.1 -uroot -p${MYSQL_ROOT_PASSWORD} >/dev/null 2>&1"]
+interval: 10s
+timeout: 5s
+retries: 10
+start_period: 30s
+
+
+wordpress:
+image: wordpress:6.5-php8.2-apache
+container_name: wp_app
+restart: unless-stopped
+depends_on:
+db:
+condition: service_healthy
+env_file: .env
+environment:
+- WORDPRESS_DB_HOST=db:3306
+- WORDPRESS_DB_USER=${WORDPRESS_DB_USER}
+- WORDPRESS_DB_PASSWORD=${WORDPRESS_DB_PASSWORD}
+- WORDPRESS_DB_NAME=${WORDPRESS_DB_NAME}
+ports:
+- "8080:80"
+volumes:
+- ./wordpress/wp-content:/var/www/html/wp-content:cached
+# optional: uncomment when you want to persist uploads separately
+# - ./wordpress/wp-content/uploads:/var/www/html/wp-content/uploads
+
+
+phpmyadmin:
+image: phpmyadmin:latest
+container_name: wp_phpmyadmin
+restart: unless-stopped
+depends_on:
+- db
+env_file: .env
+environment:
+- PMA_HOST=db
+- PMA_PORT=3306
+- MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+ports:
+- "8081:80"
+
+
+volumes:
+db_data:
+name: wp_db_data

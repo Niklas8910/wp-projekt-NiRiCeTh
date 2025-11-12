@@ -1,0 +1,25 @@
+# sensitive / local
+.env
+.env.local
+
+
+# node / editor
+node_modules/
+.vscode/
+.DS_Store
+
+
+# wordpress uploads (optionell, wenn ihr uploads nicht ins Repo wollt)
+wordpress/wp-content/uploads/
+
+
+# composer / vendor
+vendor/
+
+
+# docker
+docker-compose.override.yml
+
+
+# Git keep files are allowed
+!.gitkeep
