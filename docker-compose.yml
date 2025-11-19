@@ -52,7 +52,33 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "8081:80"
+    wiki:
+      image: ghcr.io/requarks/wiki:2
+      container_name: wiki
+      restart: unless-stopped
+      ports:
+        - "8082:3000"
+      environment:
+        # SQLite default (keine DB nötig)
+        DB_TYPE: sqlite
+        DB_FILEPATH: /wiki/db/wiki.sqlite
+      volumes:
+        - wiki_data:/wiki/db
 
+    grafana:
+      image: grafana/grafana:10
+      container_name: grafana
+      restart: unless-stopped
+      ports:
+        - "8083:3000"
+      volumes:
+        - grafana_data:/var/lib/grafana
 volumes:
   db_data:
     name: wp_db_data
+
+  wiki_data:
+    name: wiki_data
+
+  grafana_data:
+    name: grafana_data
