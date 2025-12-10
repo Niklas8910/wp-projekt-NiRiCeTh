@@ -1,6 +1,7 @@
 version: '2.4'
 
 services:
+  # === 1. WordPress Datenbank (MySQL) ===
   db:
     image: mysql:8
     container_name: wp_db
@@ -20,6 +21,7 @@ services:
       retries: 10
       start_period: 30s
 
+  # === 2. WordPress Applikation (Apache/PHP) ===
   wordpress:
     image: wordpress:6.5-php8.2-apache
     container_name: wp_app
@@ -33,11 +35,11 @@ services:
       WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
-    ports:
-      - "8080:80"
+    # KEINE PORTS: Der Zugriff erfolgt intern über den Servicenamen 'wordpress' (Port 80)
     volumes:
       - ./wordpress/wp-content:/var/www/html/wp-content:cached
 
+  # === 3. phpMyAdmin ===
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: wp_phpmyadmin
@@ -52,6 +54,7 @@ services:
     ports:
       - "8081:80"
 
+  # === 4. Wiki.js ===
   wiki:
     image: ghcr.io/requarks/wiki:2
     container_name: wiki
@@ -65,7 +68,7 @@ services:
     volumes:
       - ./wiki_data:/wiki/db:rw
 
-
+  # === 5. Grafana ===
   grafana:
     image: grafana/grafana:10.0.3
     container_name: grafana
@@ -78,6 +81,48 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
+  # ===================================================
+  # === NGINX PROXY MANAGER SERVICES (KORRIGIERT) ===
+  # ===================================================
+
+  # === 6. MariaDB für NPM ===
+  npm_db:
+    image: mariadb:10.5
+    container_name: npm_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'your_npm_root_password' # Ändern!
+      MYSQL_DATABASE: 'npm_db'
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: '1234' # Ändern!
+    volumes:
+      - npm_db_data:/var/lib/mysql
+
+  # === 7. Nginx Proxy Manager ===
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:2
+    container_name: npm_app
+    restart: unless-stopped
+    depends_on:
+      - npm_db
+    ports:
+      # UI-Port für das Admin-Interface
+      - "81:81"
+      # Geänderte Ports: HTTP 8088 und HTTPS 8443
+      - "8088:80"
+      - "8443:443"
+    environment:
+      DB_MYSQL_HOST: npm_db
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: 'npm_user'
+      DB_MYSQL_PASSWORD: 'your_npm_user_password'
+      DB_MYSQL_NAME: 'npm_db'
+    volumes:
+      # KORREKTUR: Nutzt den Host-Ordner ./npm_data für den Containerpfad /data
+      - ./npm_data:/data
+      - ./npm_logs:/var/log/nginx
+
+# === Volumes Definitionen ===
 volumes:
   db_data:
     name: wp_db_data
@@ -87,3 +132,9 @@ volumes:
 
   grafana_data:
     name: grafana_data
+    
+  npm_db_data:
+    name: npm_db_data
+    
+  # npm_config ist nicht mehr notwendig, da wir ./npm_data verwenden.
+  # Es kann hier entfernt werden, um die Konfiguration sauber zu halten.
