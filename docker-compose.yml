@@ -37,7 +37,6 @@ services:
       - "8080:80"
     volumes:
       - ./wordpress/wp-content:/var/www/html/wp-content:cached
-      # - ./wordpress/wp-content/uploads:/var/www/html/wp-content/uploads
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -52,27 +51,33 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "8081:80"
-    wiki:
-      image: ghcr.io/requarks/wiki:2
-      container_name: wiki
-      restart: unless-stopped
-      ports:
-        - "8082:3000"
-      environment:
-        # SQLite default (keine DB nötig)
-        DB_TYPE: sqlite
-        DB_FILEPATH: /wiki/db/wiki.sqlite
-      volumes:
-        - wiki_data:/wiki/db
 
-    grafana:
-      image: grafana/grafana:10
-      container_name: grafana
-      restart: unless-stopped
-      ports:
-        - "8083:3000"
-      volumes:
-        - grafana_data:/var/lib/grafana
+  wiki:
+    image: ghcr.io/requarks/wiki:2
+    container_name: wiki
+    restart: unless-stopped
+    user: "1000:1000"
+    ports:
+      - "8082:3000"
+    environment:
+      DB_TYPE: sqlite
+      DB_FILEPATH: /wiki/db/wiki.sqlite
+    volumes:
+      - ./wiki_data:/wiki/db:rw
+
+
+  grafana:
+    image: grafana/grafana:10.0.3
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "8083:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: 123456789
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 volumes:
   db_data:
     name: wp_db_data
